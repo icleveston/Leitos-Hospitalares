@@ -1,0 +1,223 @@
+<!DOCTYPE HTML>
+ <html>
+   <head>    
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.0.1/sweetalert.min.css" />
+    <style>
+	body {
+		margin       :  0px;
+		padding      :  0px;
+         }
+	canvas{
+		width:100%;
+	}
+
+	h2{
+		text-align   :  center;
+	}
+    </style>
+
+        <script src="http://code.jquery.com/jquery-2.1.4.js"></script>
+	<script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script src="http://smoothiecharts.org/smoothie.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert/1.0.1/sweetalert.min.js"></script>
+
+
+    
+    <script>
+
+	window.requestAnimFrame = (function(callback) {	
+		return window.requestAnimationFrame    || 
+			window.webkitRequestAnimationFrame || 
+			window.mozRequestAnimationFrame    || 
+			window.oRequestAnimationFrame      || 
+			window.msRequestAnimationFrame     ||
+		
+		function(callback) 
+		{
+			window.setTimeout(callback, 1000 / 30);  // 30 frames per second
+		};
+	})();
+	
+	var iosocket;
+		
+	var tempData  = 0; 
+	var txData = '';
+	
+
+	var accDataX    =  0;
+	var accDataY    =  0;
+	var accDataZ    =  0;
+	
+	var data1 = 0;
+	var data2 = 0;
+	var data3 = 0;
+		
+	function initGraph1()  //Initialize Graph 1
+	{
+		var smoothie1 = new SmoothieChart({
+				  grid: { strokeStyle:'rgb(125, 0, 0)',
+					  lineWidth: 1, millisPerLine: 250, verticalSections: 4, },
+					minValue:-200,maxValue:100,
+				  labels: { fillStyle:'rgb(60, 0, 0)' }
+				});
+
+
+		var plot1 = new TimeSeries();
+		
+		smoothie1.streamTo(document.getElementById("myGraph1"));
+		smoothie1.addTimeSeries(plot1, { strokeStyle:'rgb(0, 255, 0)', lineWidth:2 });
+		
+		setInterval(function() {
+					plot1.append(new Date().getTime(), data1 );
+			}, 800);
+	}
+	
+	function initGraph2()
+	{
+		var smoothie2 =  new SmoothieChart({
+				  grid: { strokeStyle:'rgb(125, 0, 0)',
+					  lineWidth: 1, millisPerLine: 250, verticalSections: 4, },
+					minValue:-200,maxValue:100,
+				  labels: { fillStyle:'rgb(60, 0, 0)' }
+				});
+
+		var plot2 = new TimeSeries();
+		
+		smoothie2.streamTo(document.getElementById("myGraph2"));
+		smoothie2.addTimeSeries(plot2, { strokeStyle:'rgb(0, 0, 255)', lineWidth:2 });
+		
+		setInterval(function() {
+					plot2.append(new Date().getTime(), data2 );
+			}, 800);
+	}
+	
+	function initGraph3()
+	{
+		var smoothie3 =  new SmoothieChart({
+				  grid: { strokeStyle:'rgb(125, 0, 0)',
+					  lineWidth: 1, millisPerLine: 250, verticalSections: 4, },
+					minValue:-100,maxValue:100,
+				  labels: { fillStyle:'rgb(60, 0, 0)' }
+				});
+
+		var plot3 = new TimeSeries();
+		
+		smoothie3.streamTo(document.getElementById("myGraph3"));
+		smoothie3.addTimeSeries(plot3, { strokeStyle:'rgb(255, 0, 0)', lineWidth:2 });
+		
+		setInterval(function() {
+					plot3.append(new Date().getTime(), data3 );
+			}, 800);
+	}
+	
+	function initSocketIO()
+	{
+		iosocket = io.connect();
+		iosocket.on('onconnection', function(value) {
+				
+		iosocket.on('updateData', function (recievedData) 
+		{
+			tempData = recievedData.pollOneValue;  //receivedData
+
+			if(tempData[tempData.length-1] == 'X')
+			{
+				accDataX  = document.getElementById("AccX");
+				tempData = tempData.substring(0, tempData.length - 1);
+				accDataX.value = tempData;
+				
+				window.data1 = Number(tempData);   //AccX graphData
+
+				
+				
+			}
+			
+			if(tempData[tempData.length-1] == 'Y')
+			{
+				accDataY  = document.getElementById("AccY");
+				tempData = tempData.substring(0, tempData.length - 1);
+				accDataY.value = tempData;
+				
+				window.data2 = Number(tempData);  //AccY graphData
+			}
+			
+			if(tempData[tempData.length-1] == 'Z')
+			{
+				accDataZ  = document.getElementById("AccZ");
+				tempData = tempData.substring(0, tempData.length - 1);
+				accDataZ.value = tempData;
+				
+				window.data3 = Number(tempData);  //AccZ graphData
+			}
+
+			if((Math.abs(window.data1) + Math.abs(window.data2) + Math.abs(window.data3)) > 220){
+				sweetAlert("Alerta", "Paciente Agitado!!", "error");
+
+			}
+
+		});
+	    });
+	}
+	
+	window.onload = function() {
+	     initSocketIO();
+	     initGraph1();
+	     initGraph2();
+	     initGraph3();
+        };
+
+
+    </script>
+  </head>
+
+	<body  style="background-color:#eee">
+		<div style="position:relative;margin:0 auto;width:71%">
+			  <div style="margin-bottom:2rem;border:1px solid #555;width:100%;padding:0.5rem;border-radius:5px;background:white">
+				<div style="float:left;width:50%">
+					<h1 style="color:#A52A2A">Monitoramento de Leitos Hospitalares</h1>
+				</div>
+				<div style="float:right;margin-top:1.5rem">
+					<h3>Fabricio Bottega, Iury Cleveston e Lucas Cielo Borin</h3>
+				</div>
+				<div style="clear:both"></div>
+			  </div>
+			  <div style="float:left;width:48%;border:1px solid #555;border-radius:5px;background:white;padding:0.5rem;">
+				<h2>Leito 1</h2>
+
+				<div align="center">
+					<p>Eixo X:</p>
+					<canvas id="myGraph1" width="400" height="100"></canvas>
+				</div>
+	
+				<div align="center">
+					<p>Eixo Y:</p>
+					<canvas id="myGraph2" width="400" height="100"></canvas>
+				</div>
+	
+				<div align="center">
+					<p>Eixo Z:</p>
+					<canvas id="myGraph3" width="400" height="100"></canvas>
+				</div>
+				<div id="AccData" style="display:none">
+				    <p style="color:blue">Dados do Acelerometro:</p>
+				    <p style="display:inline">X:</p> &nbsp &nbsp <input type="text" id = "AccX" style="width:80px"/> &nbsp &nbsp
+				    <p style="display:inline">Y:</p> &nbsp &nbsp <input type="text" id = "AccY" style="width:80px"/> &nbsp &nbsp
+				    <p style="display:inline">Z:</p> &nbsp &nbsp <input type="text" id = "AccZ" style="width:80px"/> &nbsp &nbsp
+			  	</div>
+		           </div>
+			  <div style="float:right;width:48%">
+				  <div style="width:100%;border:1px solid #555;border-radius:5px;background:white;padding:0.5rem;">
+					<h2>Leito 2</h2>
+				 </div> 
+				 <div style="width:100%;border:1px solid #555;border-radius:5px;background:white;padding:0.5rem;margin-top:1rem">
+					<h2>Leito 3</h2>
+				 </div>
+				 <div style="width:100%;border:1px solid #555;border-radius:5px;background:white;padding:0.5rem;margin-top:1rem">
+					<h2>Leito 4</h2>
+				 </div>
+			 </div>
+			 <div style="clear:both"></div>
+	  	</div> 
+	</body>
+</html>
